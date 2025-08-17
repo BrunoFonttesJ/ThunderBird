@@ -1,10 +1,10 @@
 const { RequestStreamReader } = require('./src/http-parser/request-stream-reader')
 const net = require('node:net')
 
-
 class ThunderBird {
     constructor(max_payload_size_in_bytes) {
         this.max_payload_size_in_bytes = max_payload_size_in_bytes
+        this.getPaths = {}
     }
 
     create() {
@@ -12,7 +12,12 @@ class ThunderBird {
             const requestStreamReader = new RequestStreamReader()
             socket.on('data', (chunkBytes) => {
                 if (requestStreamReader.decode(chunkBytes) == 1) {
-                    socket.write(this.mock_response());
+                    const callback = this.getCallback(requestStreamReader.request.method, requestStreamReader.request.path)
+                    if (callback) {
+                        socket.write(callback());
+                    } else {
+                        socket.write(this.notFoundResponse())
+                    }
                     socket.end();
                     return
                 }
@@ -44,10 +49,10 @@ class ThunderBird {
     }
 
 
-    mock_response() {
-        const body = '<h1>Hello from raw HTTP server</h1>'
+    notFoundResponse() {
+        const body = '<h1>Not Found</h1>'
 
-        const response = 'HTTP/1.1 200 OK\r\n' +
+        const response = 'HTTP/1.1 404 OK\r\n' +
             'Content-Type: text/html; charset=UTF-8\r\n' +
             `Content-Length: ${Buffer.byteLength(body)}\r\n` +
             'Connection: close\r\n' +
@@ -56,6 +61,15 @@ class ThunderBird {
         return response
     }
 
+    get(path, callback) {
+        this.getPaths[path] = callback
+    }
+
+    getCallback(method, path) {
+        if (method == "get") {
+            return this.getPaths[path]
+        }
+    }
 }
 
 module.exports = { ThunderBird }
