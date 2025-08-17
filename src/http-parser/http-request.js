@@ -64,7 +64,7 @@ class HttpRequest {
     }
 
 
-    shouldHaveBody() {
+    mayHaveBody() {
         return METHODS_THAT_ALLOW_BODY.has(this.method)
     }
 
@@ -72,7 +72,7 @@ class HttpRequest {
         return this.headers.bodySizeIsEqualToContentLength(this.body.length)
     }
     pushToBody(chunk) {
-        if (!this.shouldHaveBody()) {
+        if (!this.mayHaveBody()) {
             return 1
         }
         if (this.headers.exceedMaxBodySizeLimit(chunk.length, this.body.length)) {

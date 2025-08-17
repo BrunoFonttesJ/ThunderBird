@@ -23,7 +23,7 @@ class ThunderBird {
                 }
             });
             socket.on('end', () => {
-                if (requestStreamReader.request.shouldHaveBody() && !requestStreamReader.request.bodySizeIsEqualToContentLength()) {
+                if (requestStreamReader.request.mayHaveBody() && !requestStreamReader.request.bodySizeIsEqualToContentLength()) {
                     console.log("body size is not the same as content length")
                 }
                 else {
