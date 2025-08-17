@@ -1,4 +1,4 @@
-const { RequestStreamReader } = require('./request-stream-reader')
+const { RequestStreamReader } = require('./src/http-parser/request-stream-reader')
 const net = require('node:net')
 
 

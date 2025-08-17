@@ -1,4 +1,4 @@
-const { ThunderBird } = require('./src/thunderbird')
+const { ThunderBird } = require('./thunderbird')
 
 const PORT = 3000
 
