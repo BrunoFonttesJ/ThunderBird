@@ -73,7 +73,7 @@ class HttpRequest {
     }
     pushToBody(chunk) {
         if (!this.shouldHaveBody()) {
-            throw new Error("should not have body")
+            return 1
         }
         if (this.headers.exceedMaxBodySizeLimit(chunk.length, this.body.length)) {
             throw new Error("content length exceeded")

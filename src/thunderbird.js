@@ -12,18 +12,19 @@ class ThunderBird {
             const requestStreamReader = new RequestStreamReader()
             socket.on('data', (chunkBytes) => {
                 if (requestStreamReader.decode(chunkBytes) == 1) {
+                    socket.write(this.mock_response());
                     socket.end();
                     return
                 }
             });
             socket.on('end', () => {
-                if (!requestStreamReader.request.bodySizeIsEqualToContentLength()) {
+                if (requestStreamReader.request.shouldHaveBody() && !requestStreamReader.request.bodySizeIsEqualToContentLength()) {
                     console.log("body size is not the same as content length")
                 }
                 else {
                     console.log(requestStreamReader.request)
                 }
-                socket.write(this.mock_response());
+
                 console.debug('client disconnected')
             })
             socket.on('error', (error) => {
