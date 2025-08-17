@@ -1,73 +1,36 @@
-const {
-    END_OF_HEADERS_LINE,
-    HttpHeaders,
-} = require('./configs')
-const { parseHttpRequest } = require('./request-parser/request-parser')
+const { HttpRequest } = require('./http-request')
+
+const END_OF_HEADERS_LINE = '\r\n\r\n'
+
 class RequestStreamReader {
     constructor() {
         this.request = undefined
         this.buffer = ''
         this.bodyBuffer = ''
-        this.contentLength = undefined
-        this.stopDecodingBody = undefined
+        this.maxBodySizeReached = false
     }
 
     decode(chunkBytes) {
         const chunk = chunkBytes.toString()
-        if (this.shouldDecodeBody()) {
-            this.decodeBody(chunk, this.contentLength)
-            return
+        if (this.request) {
+            return this.request.pushToBody(bodyChunk)
         }
-        if (this.shouldDecodeRequestLineAndHeaders(chunk)) {
-            this.push(chunk);
-            return
-        }
-        this.decodeEndOfHeadersChunk(chunk);
-        this.request = parseHttpRequest(this.buffer)
-        this.setContentLength(this.request.headers[HttpHeaders.CONTENT_LENGTH])
-    }
 
-    shouldDecodeRequestLineAndHeaders(chunk) {
-        return this.request === null && !chunk.includes(END_OF_HEADERS_LINE)
-    }
-    shouldDecodeBody() {
-        return this.request !== null && this.request.allowsBody && !this.stopDecodingBody
-    }
+        const [requestChunk, bodyChunk] = chunk.split(END_OF_HEADERS_LINE);
 
-    decodeEndOfHeadersChunk(chunk) {
-        const [requestChunk, ...bodyChunk] = chunk.split(END_OF_HEADERS_LINE, 1);
-        this.push(requestChunk);
-        this.pushToBody(bodyChunk)
-    }
+        this.buffer += requestChunk
 
-    decodeBody(chunk, contentLength) {
-        if (chunk.length + this.requestBuffer.bodyBuffer.length >= contentLength) {
-            this.setStopDecodingBody(false)
-        }
-        this.requestBuffer.pushToBody(chunk)
-    }
-
-    push(chunk) {
-        this.buffer += chunk
-    }
-
-    pushToBody(chunk) {
-        this.bodyBuffer += chunk
-    }
-
-    setContentLength(contentLength) {
-        if (this.contentLength === null) {
-            this.contentLength = contentLength
+        const foundEndOfHeaders = requestChunk.length != chunk.length
+        if (foundEndOfHeaders) {
+            return this.decodeEndOfHeaderChunk(bodyChunk)
         }
     }
 
-    getContentLength() {
-        return this.contentLength ?? 0
-    }
+    decodeEndOfHeaderChunk(bodyChunk) {
+        this.request = HttpRequest.create(this.buffer)
 
-    setStopDecodingBody(stopDecodingBody) {
-        if (this.stopDecodingBody === null) {
-            this.stopDecodingBody = stopDecodingBody
+        if (bodyChunk) {
+            return this.request.pushToBody(bodyChunk)
         }
     }
 }

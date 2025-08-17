@@ -1,5 +1,3 @@
-const { RequestBodyStreamReader } = require('./request-body-stream-reader')
-
 const { RequestStreamReader } = require('./request-stream-reader')
 const net = require('node:net')
 
@@ -12,30 +10,20 @@ class ThunderBird {
     create() {
         const server = net.createServer(socket => {
             const requestStreamReader = new RequestStreamReader()
-            let requestBodyStreamReader = undefined
             socket.on('data', (chunkBytes) => {
-                requestStreamReader.decode(chunkBytes)
-                if (requestStreamReader.request === undefined) {
-                    return
-                }
-                if (requestStreamReader.request.allowsBody) {
-                    requestBodyStreamReader = new RequestBodyStreamReader(chunkBytes)
-                } else {
-                    socket.write(this.mock_response());
+                if (requestStreamReader.decode(chunkBytes) == 1) {
                     socket.end();
                     return
                 }
-
-                if (!requestBodyStreamReader.shouldKeepDecoding) {
-                    requestStreamReader.request.setBody(requestBodyStreamReader.buffer)
-                    socket.write(this.mock_response());
-                    socket.end()
-                    return
-                }
-                requestBodyStreamReader.decode(chunkBytes)
             });
-
             socket.on('end', () => {
+                if (!requestStreamReader.request.bodySizeIsEqualToContentLength()) {
+                    console.log("body size is not the same as content length")
+                }
+                else {
+                    console.log(requestStreamReader.request)
+                }
+                socket.write(this.mock_response());
                 console.debug('client disconnected')
             })
             socket.on('error', (error) => {
