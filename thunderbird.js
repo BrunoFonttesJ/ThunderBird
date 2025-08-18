@@ -1,3 +1,4 @@
+const { HttpRequest } = require('./src/http-parser/http-request')
 const { RequestStreamReader } = require('./src/http-parser/request-stream-reader')
 const net = require('node:net')
 
@@ -8,11 +9,29 @@ class ThunderBird {
     }
 
     create() {
+        const maxConcurrentSocketId = 1
+        const requestStreamReaders = {}
+
+        const freeSocketIds = [maxConcurrentSocketId]
+
         const server = net.createServer(socket => {
-            const requestStreamReader = new RequestStreamReader()
+            if (!socket._id) {
+                let freeSocketId = freeSocketIds.pop()
+                if (!freeSocketId) {
+                    maxConcurrentSocketId += 1
+                    freeSocketId = maxConcurrentSocketId
+                }
+                socket._id = freeSocketId
+            }
+
+            if (!requestStreamReaders[socket._id]) {
+                requestStreamReaders[socket._id] = new RequestStreamReader()
+            }
             socket.on('data', (chunkBytes) => {
-                if (requestStreamReader.decode(chunkBytes) == 1) {
-                    const callback = this.getCallback(requestStreamReader.request.method, requestStreamReader.request.path)
+                const requestStreamReader = requestStreamReaders[socket._id]
+                const maybeHttpRequest = requestStreamReader.decode(chunkBytes)
+                if (maybeHttpRequest instanceof HttpRequest) {
+                    const callback = this.getCallback(maybeHttpRequest.method, maybeHttpRequest.path)
                     if (callback) {
                         socket.write(callback());
                     } else {
@@ -23,16 +42,21 @@ class ThunderBird {
                 }
             });
             socket.on('end', () => {
+                const requestStreamReader = requestStreamReaders[socket._id]
                 if (requestStreamReader.request.mayHaveBody() && !requestStreamReader.request.bodySizeIsEqualToContentLength()) {
                     console.log("body size is not the same as content length")
                 }
                 else {
                     console.log(requestStreamReader.request)
                 }
+                delete requestStreamReaders[socket._id]
+                freeSocketIds.push(socket._id)
 
                 console.debug('client disconnected')
             })
             socket.on('error', (error) => {
+                delete requestStreamReaders[socket._id]
+                freeSocketIds.push(socket._id)
                 console.error('error: ', error)
             })
             socket.on('timeout', () => {

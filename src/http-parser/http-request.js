@@ -73,14 +73,14 @@ class HttpRequest {
     }
     pushToBody(chunk) {
         if (!this.mayHaveBody()) {
-            return 1
+            return this
         }
         if (this.headers.exceedMaxBodySizeLimit(chunk.length, this.body.length)) {
             throw new Error("content length exceeded")
         }
         this.body += chunk
         if (this.bodySizeIsEqualToContentLength()) {
-            return 1
+            return this
         }
     }
 }
