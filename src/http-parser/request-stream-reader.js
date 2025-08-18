@@ -6,8 +6,6 @@ class RequestStreamReader {
     constructor() {
         this.request = undefined
         this.buffer = ''
-        this.bodyBuffer = ''
-        this.maxBodySizeReached = false
     }
 
     decode(chunkBytes) {
