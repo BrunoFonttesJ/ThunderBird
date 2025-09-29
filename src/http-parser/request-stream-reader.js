@@ -30,6 +30,7 @@ class RequestStreamReader {
         if (bodyChunk) {
             return this.request.pushToBody(bodyChunk)
         }
+        return this.request
     }
 }
 

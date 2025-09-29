@@ -5,11 +5,13 @@ const net = require('node:net')
 class ThunderBird {
     constructor(max_payload_size_in_bytes) {
         this.max_payload_size_in_bytes = max_payload_size_in_bytes
-        this.getPaths = {}
+        this.getPaths = {
+
+        }
     }
 
     create() {
-        const maxConcurrentSocketId = 1
+        let maxConcurrentSocketId = 1
         const requestStreamReaders = {}
 
         const freeSocketIds = [maxConcurrentSocketId]
@@ -43,7 +45,7 @@ class ThunderBird {
             });
             socket.on('end', () => {
                 const requestStreamReader = requestStreamReaders[socket._id]
-                if (requestStreamReader.request.mayHaveBody() && !requestStreamReader.request.bodySizeIsEqualToContentLength()) {
+                if (requestStreamReader.request.allowsBody() && !requestStreamReader.request.bodySizeIsEqualToContentLength()) {
                     console.log("body size is not the same as content length")
                 }
                 else {

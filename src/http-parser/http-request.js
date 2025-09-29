@@ -12,7 +12,7 @@ const HTTP_METHODS = Object.freeze({
 
 const METHODS_THAT_ALLOW_BODY = new Set([HTTP_METHODS.post, HTTP_METHODS.put, HTTP_METHODS.patch])
 
-const HTTP_VERSIONS = new Set(['http/1.1'])
+const HTTP_VERSIONS = new Set(['http/1.1', 'http/1.0'])
 
 
 const PATH_QUERY_PATTERN = new RegExp(
@@ -64,7 +64,7 @@ class HttpRequest {
     }
 
 
-    mayHaveBody() {
+    allowsBody() {
         return METHODS_THAT_ALLOW_BODY.has(this.method)
     }
 
@@ -72,7 +72,7 @@ class HttpRequest {
         return this.headers.bodySizeIsEqualToContentLength(this.body.length)
     }
     pushToBody(chunk) {
-        if (!this.mayHaveBody()) {
+        if (!this.allowsBody()) {
             return this
         }
         if (this.headers.exceedMaxBodySizeLimit(chunk.length, this.body.length)) {
