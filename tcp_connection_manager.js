@@ -2,10 +2,7 @@ const { RequestStreamReader } = require('./src/http-parser/request-stream-reader
 class TcpConnectionManager {
     constructor() {
         this.requestStreamReaders = {}
-        this.freeSocketIds = []
-        for(let i=0; i<10;i++){
-            this.freeSocketIds.push(i)
-        }
+        this.freeSocketIds = [0]
         this.lastSocketId = this.freeSocketIds[this.freeSocketIds.length-1]
     }
 

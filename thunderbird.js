@@ -6,9 +6,7 @@ const { TcpConnectionManager } = require('./tcp_connection_manager')
 class ThunderBird {
     constructor(max_payload_size_in_bytes) {
         this.max_payload_size_in_bytes = max_payload_size_in_bytes
-        this.getPaths = {
-
-        }
+        this.callbacks = {}
     }
 
     create() {
@@ -20,15 +18,11 @@ class ThunderBird {
                 const maybeHttpRequest = requestStreamReader.decode(chunkBytes)
                 if (maybeHttpRequest instanceof HttpRequest) {
                     const callback = this.getCallback(maybeHttpRequest.method, maybeHttpRequest.path)
-                    if (callback) {
-                        socket.write(callback());
-                    } else {
-                        socket.write(this.notFoundResponse())
-                    }
+                    socket.write(callback())
                     socket.end();
-                    return
                 }
             });
+            
             socket.on('end', () => {
                 if (requestStreamReader.request.allowsBody() && !requestStreamReader.request.bodySizeIsEqualToContentLength()) {
                     console.log("body size is not the same as content length")
@@ -39,10 +33,12 @@ class ThunderBird {
                 connectionManager.releaseSocket(socket)
                 console.debug('client disconnected')
             })
+
             socket.on('error', (error) => {
                 connectionManager.releaseSocket(socket)
                 console.error('error: ', error)
             })
+
             socket.on('timeout', () => {
                 console.debug('socket timeout')
                 socket.end()
@@ -69,14 +65,40 @@ class ThunderBird {
         return response
     }
 
+    retrieveOrCreateCallbackPath(path) {
+        if (!this.callbacks[path]) {
+            this.callbacks[path] = {}
+        }
+        return this.callbacks[path]
+    }
+
     get(path, callback) {
-        this.getPaths[path] = callback
+        const callbackPath = this.retrieveOrCreateCallbackPath(path)
+        callbackPath["get"] = callback
+    }
+
+    post(path, callback) {
+        const callbackPath = this.retrieveOrCreateCallbackPath(path)
+        callbackPath["post"] = callback
+    }
+
+    put(path, callback) {
+        const callbackPath = this.retrieveOrCreateCallbackPath(path)
+        callbackPath["put"] = callback
+    }
+
+    delete(path, callback) {
+        const callbackPath = this.retrieveOrCreateCallbackPath(path)
+        callbackPath["delete"] = callback
+    }
+
+    patch(path, callback) {
+        const callbackPath = this.retrieveOrCreateCallbackPath(path)
+        callbackPath["patch"] = callback
     }
 
     getCallback(method, path) {
-        if (method == "get") {
-            return this.getPaths[path]
-        }
+        return this.callbacks[path]?.[method] || this.notFoundResponse
     }
 }
 
